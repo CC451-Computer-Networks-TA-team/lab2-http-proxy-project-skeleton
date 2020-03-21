@@ -1,39 +1,66 @@
 # Don't forget to change this file's name before submission.
 import sys
 import os
-# Abstract Base Class, incase you're wondering.
-from abc import ABCMeta, abstractmethod
+import enum
+#########################
+# Leave as is.
+#########################
 
 
-class HttpUnit(metaclass=ABCMeta):
+def get_arg(param_index, default=None):
     """
-    A base class representing an interface for
-    HTTP request / response that allows
-    an object to become an HTTP string.
+        Gets a command line argument by index (note: index starts from 1)
+        If the argument is not supplies, it tries to use a default value.
+
+        If a default value isn't supplied, an error message is printed
+        and terminates the program.
     """
-    @abstractmethod
-    def to_http_string(self):
-        """
-        Convert the HTTP request/response
-        to a valid HTTP string.
-
-        You still need to convert this string
-        to byte array before sending it to the socket,
-        keeping it as a string in this stage is to ease
-        debugging and testing.
-        """
-        pass
-
-    def to_byte_array(self, http_string):
-        """
-        Converts an HTTP string to a byte array.
-        """
-        return bytes(http_string, "UTF-8")
+    try:
+        return sys.argv[param_index]
+    except IndexError as e:
+        if default:
+            return default
+        else:
+            print(e)
+            print(
+                f"[FATAL] The comand-line argument #[{param_index}] is missing")
+            exit(-1)    # Program execution failed.
 
 
-class HttpRequestInfo(HttpUnit):
+def check_file_name():
     """
-    A class that represents a HTTP request information
+    Checks if this file has a valid name for *submission*
+
+    leave this function and as and don't use it. it's just
+    to notify you if you're submitting a file with a correct
+    name.
+    """
+    script_name = os.path.basename(__file__)
+    import re
+    matches = re.findall(r"(\d{4}_)lab2\.py", script_name)
+    if not matches:
+        print(f"[WARN] File name is invalid [{script_name}]")
+
+
+class HttpRequestState(enum.Enum):
+    """
+    The values here have nothing to do with
+    response values i.e. 400, 502, ..etc.
+
+    Leave this as is, feel free to add yours.
+    """
+    BAD_REQUEST = 0
+    NOT_IMPLEMENTED = 1
+    GOOD = 2
+
+
+#########################
+#########################
+
+
+class HttpRequestInfo(object):
+    """
+    Represents a HTTP request information
 
     Since you'll need to standardize all requests you get
     as specified by the document, after you parse the
@@ -75,145 +102,162 @@ class HttpRequestInfo(HttpUnit):
         # port is removed (because it goes into the request_port variable)
         self.headers = headers
 
+    def to_http_string(self):
+        """
+        Convert the HTTP request/response
+        to a valid HTTP string.
+        As the protocol specifies:
 
-class HttpErrorResponse(HttpUnit):
+        [request_line]\r\n
+        [header]\r\n
+        [headers..]\r\n
+        \r\n
+
+        You still need to convert this string
+        to byte array before sending it to the socket,
+        keeping it as a string in this stage is to ease
+        debugging and testing.
+        """
+
+        print("*" * 50)
+        print("[to_http_string] Implement me!")
+        print("*" * 50)
+        return None
+
+    def to_byte_array(self, http_string):
+        """
+        Converts an HTTP string to a byte array.
+        """
+        return bytes(http_string, "UTF-8")
+
+    def display(self):
+        print(f"Client:", self.client_address_info)
+        print(f"Method:", self.method)
+        print(f"Host:", self.requested_host)
+        print(f"Port:", self.requested_port)
+        print("Headers:\n", "\n".join(self.headers))
+
+
+class HttpErrorResponse(object):
     """
-    Since you'll need to return some error messages in some
-    cases, use this class to compose the HTTP error response, then
-    call to_http_string() -> to_byte_array() on it before
-    sending it to the socket.
-
-    NOTE: you need to implement to_http_string() for this class.
+    Represents a proxy-error-response.
     """
 
-    def __init__(self, code: int, message: str):
+    def __init__(self, code, message):
         self.code = code
         self.message = message
 
+    def to_http_string(self):
+        """ Same as above """
+        pass
 
-class HttpProcessor(object):
+    def to_byte_array(self, http_string):
+        """
+        Converts an HTTP string to a byte array.
+        """
+        return bytes(http_string, "UTF-8")
+
+    def display(self):
+        print(self.to_http_string())
+
+
+def parse_http_request(source_addr, http_raw_data) -> HttpRequestInfo:
     """
-    Implements logic for an HTTP proxy server.
-    The input to this object is a received HTTP message,
-    the output is the packets to be written to the TCP sockets
-    that are connected to the remote requested server.
+    This function parses an HTTP request into an HttpRequestInfo
+    object.
 
-    This class MUST NOT know anything about the existing sockets
-    its input and outputs are byte arrays ONLY.
-
-    Store the output packets in a buffer (some list) in this class
-    the function get_next_output_packet returns the first item in
-    the packets to be sent.
-
-    This class is also responsible for reading/writing files to the
-    hard disk.
-
-    Failing to comply with those requirements will invalidate
-    your submission.
-
-    Feel free to add more functions to this class as long as
-    those functions don't interact with sockets nor inputs from
-    user/sockets. For example, you can add functions that you
-    think they are "private" only. Private functions in Python
-    start with an "_", check the example below
+    it does NOT validate the HTTP request.
     """
-
-    def __init__(self):
-        """
-        Add and initialize the *internal* fields you need.
-        Do NOT change the arguments passed to this function.
-
-        Here's an example of what you can do inside this function.
-        """
-        self.packet_buffer = []
-        pass
-
-    def process_input_request(self, input_request: HttpRequestInfo):
-        """
-        This function contains all your packet processing pipeline,
-        call your functions here.
-
-        Return a byetarray from this function
-        """
-        # add your other logic functions here. (like validation, ...etc)
-        # return the errors here also (as bytearray)
-        pass
-
-    def _parse_http_packet(self, packet_bytes) -> HttpRequestInfo:
-        """
-        You'll use process the request using:
-        - the struct module OR
-        - string manipulation
-
-        whichever you like, to determine the type of the request
-        and extract other available information.
-
-        This function does NOT check errors. It's not its responsibility
-        """
-        pass
-
-    def process_http_packet(self, packet_data, packet_source):
-        """
-        Parse the input packet, execute your logic according to that packet.
-        packet data is a bytearray, packet source contains the address
-        information of the sender.
-
-        Leave this function as is.
-        """
-        # Add your logic here, after your logic is done,
-        # add the packet to be sent to self.packet_buffer
-        # feel free to remove this line
-        in_request = self._parse_http_packet(packet_data)
-
-        print(f"Received a request from {packet_source}")
-        print(f"Method: {in_request.method}")
-        print(f"Host: {in_request.requested_host}")
-        print(f"Port: {in_request.requested_port}")
-        print("Headers:\n", ",".join(in_request.headers))
-
-        # This shouldn't change.
-        out_packet = self.process_input_request(in_request)
-        self.packet_buffer.append(out_packet)
-
-    def get_next_output_packet(self):
-        """
-        Returns the next packet that needs to be sent.
-        This function returns a byetarray representing
-        the next packet to be sent.
-
-        For example;
-        s_socket.send(http_processor.get_next_output_packet())
-
-        Leave this function as is.
-        """
-        return self.packet_buffer.pop(0)
-
-    def has_pending_packets_to_be_sent(self):
-        """
-        Returns if any packets to be sent are available.
-
-        There should always be 1 or 0 packets in this list, since
-        we're processing everything sequentially.
-
-        Leave this function as is.
-        """
-        return len(self.packet_buffer) != 0
+    print("*" * 50)
+    print("[parse_http_request] Implement me!")
+    print("*" * 50)
+    return None
 
 
-def check_file_name():
-    """Checks if this file has a valid name for submission"""
-    script_name = os.path.basename(__file__)
-    import re
-    matches = re.findall(r"(\d{4}_)lab2\.py", script_name)
-    if not matches:
-        print(f"[WARN] File name is invalid [{script_name}]")
-    pass
+def check_http_request_validity(http_request_info: HttpRequestInfo) -> HttpRequestState:
+    """
+    Checks if an HTTP response is valid
+
+    returns:
+    One of values in HttpRequestState
+    """
+    print("*" * 50)
+    print("[check_http_request_validity] Implement me!")
+    print("*" * 50)
+    # return HttpRequestState.GOOD (for example)
+    return None
+
+
+def sanitize_http_request(request_info: HttpRequestInfo) -> HttpRequestInfo:
+    """
+    Puts an HTTP request on the sanitized (standard form)
+
+    returns:
+    A modified object of the HttpRequestInfo with
+    sanitized fields
+
+    for example, expand a URL to relative path + Host header.
+    """
+    print("*" * 50)
+    print("[sanitize_http_request] Implement me!")
+    print("*" * 50)
+    return None
+
+
+def http_request_pipeline(source_addr, http_raw_data):
+    """
+    HTTP request processing pipeline.
+
+    - Parses the given HTTP request
+    - Validates it
+    - Returns a sanitized HttpRequestInfo or HttpErrorResponse
+        based on request validity.
+
+    returns:
+     HttpRequestInfo if the request was parsed correctly.
+     HttpErrorResponse if the request was invalid.
+
+    Please don't remove this function, but feel
+    free to change its content
+    """
+    # Parse HTTP request
+    parsed = parse_http_request(source_addr, http_raw_data)
+
+    # Validate, sanitize, return Http object.
+    print("*" * 50)
+    print("[http_request_pipeline] Implement me!")
+    print("*" * 50)
+    return None
+
+#######################################
+# write functions that deal
+# with sockets and threading below.
+# Feel free to add any functions you
+# need.
+#######################################
+
+
+def entry_point(proxy_port_number):
+    """
+    Entry point, start your code here.
+
+    Please don't delete this function,
+    but feel free to modify the code
+    inside it.
+    """
+    setup_sockets(proxy_port_number)
+    print("*" * 50)
+    print("[cleanup_tcp_socket_data] Implement me!")
+    print("*" * 50)
+    return None
 
 
 def setup_sockets(proxy_port_number):
     """
-    Socket logic MUST NOT be written in the HttpProcessor
-    class. It knows nothing about the sockets.
+    Socket logic MUST NOT be written in the any
+    class. Classes know nothing about the sockets.
+
+    But feel free to add your own classes/functions.
 
     Feel free to delete this function.
     """
@@ -221,7 +265,10 @@ def setup_sockets(proxy_port_number):
 
     # when calling socket.listen() pass a number
     # that's larger than 10.
-    pass
+    print("*" * 50)
+    print("[setup_sockets] Implement me!")
+    print("*" * 50)
+    return None
 
 
 def do_socket_logic():
@@ -233,25 +280,125 @@ def do_socket_logic():
     """
     pass
 
+#######################################
+#######################################
+# *********************************** #
+#######################################
+# Leave the code below as is.
+#######################################
 
-def get_arg(param_index, default=None):
-    """
-        Gets a command line argument by index (note: index starts from 1)
-        If the argument is not supplies, it tries to use a default value.
 
-        If a default value isn't supplied, an error message is printed
-        and terminates the program.
+def simple_http_parsing_test_case():
     """
-    try:
-        return sys.argv[param_index]
-    except IndexError as e:
-        if default:
-            return default
-        else:
-            print(e)
-            print(
-                f"[FATAL] The comand-line argument #[{param_index}] is missing")
-            exit(-1)    # Program execution failed.
+    Example test cases, do NOT modify this.
+
+    If your code is correct, calling this function will have no effect.
+    """
+    req_str = "GET / HTTP/1.0\r\nHost: www.google.com\r\n\r\n"
+    parsed = parse_http_request(("127.0.0.1", 9877), req_str)
+    correct_value = "GET"
+    assert parsed.method == correct_value,\
+        "[failed] HTTP method parsing. Expected [%s] got [%s]" %\
+        (parsed.method, correct_value)
+    print("[success] HTTP method parsing")
+    # note: headers is a list of tuples
+    host_header = parsed.headers[0]
+
+    # "Host: google.edu" header is added to the request.
+    # note that the ":" is removed.
+    correct_value = ("Host", "google.edu")
+    assert correct_value == host_header, "[failed] HTTP path extraction." +\
+        " Expected: [%s] got [%s]" % (correct_value, host_header)
+    print("[success] HTTP path extraction")
+
+    assert "/" == parsed.requested_path, "[failed] HTTP path parsing." +\
+        " Expected [%s] got [%s]" % ("/", parsed.requested_path)
+    print("[success] HTTP path parsing")
+
+    # Default value of the port if it doesn't exist.
+    assert 80 == parsed.requested_port, "[failed] HTTP port parsing." +\
+        " Expected [%s] got [%s]" % (80, parsed.requested_port)
+    print("[success] HTTP  port parsing")
+
+    #######################################
+    #######################################
+
+    req_str = "GET / HTTP/1.0\r\nHost: www.google.com\r\nAccept: application/json\r\n\r\n"
+    parsed = parse_http_request(("127.0.0.1", 9877), req_str)
+    # note, this is an invalid request, [parse_http_request] ONLY parses
+    # the HTTP request and does NOT validate it.
+    req_str = "GOAT http://google.edu/ HTTP/1.0\r\n\r\n"
+    parsed = parse_http_request(("127.0.0.1", 9877), req_str)
+
+    # assert means "check"
+    correct_value = "GOAT"
+    assert parsed.method == correct_value,\
+        "[failed] HTTP method parsing. Expected [%s] got [%s]" %\
+        (parsed.method, correct_value)
+
+    assert parsed.requested_path == "/",  "[failed] HTTP path parsing. " +\
+        "(URL isn't transformed)"\
+        " Expected [%s] got [%s]" % ("/", parsed.requested_path)
+    print("[success] HTTP path parsing")
+
+    correct_value = 2
+    assert correct_value == len(parsed.headers), "[failure] header count." +\
+        " Expected [%d] got [%d]" % (correct_value, len(parsed.headers))
+    print("[success] HTTP header count")
+
+    # A request to www.google.com/ , note adding the ":" to headers
+    # "Host" header comes first
+    headers = [("Host", "www.google.com"), ("Accept", "application/json")]
+    req = HttpRequestInfo(("127.0.0.1", 9877), "GET",
+                          "www.google.com", 80, "/", headers)
+
+    #######################################
+    #######################################
+
+    http_string = "GET / HTTP/1.0\r\nHost: www.google.com\r\n"
+    http_string += "Accept: application/json\r\n\r\n"
+    assert req.to_http_string() == http_string, \
+        "[failed] convert HttpRequestInfo to a valid HTTP request"
+    print("[success] convert HttpRequestInfo to a valid HTTP request")
+
+
+def simple_http_validation_test_case():
+    # Invalid input
+    req_str = "GOAT http://google.edu/ HTTP/1.0\r\nAccept: application/json\r\n\r\n"
+    parsed = parse_http_request(("127.0.0.1", 9877), req_str)
+
+    assert parsed.method == "GOAT", "[failed] HTTP method parsing"
+    print("[success] HTTP method parsing")
+
+    assert check_http_request_validity(
+        parsed) == HttpRequestState.BAD_REQUEST, "[failed] HTTP validation"
+    print("[success] HTTP validation")
+
+    req_str = "PUT http://google.edu/ HTTP/1.0\r\nAccept: application/json\r\n\r\n"
+    parsed = parse_http_request(("127.0.0.1", 9877), req_str)
+    assert parsed.method == "PUT", "[failed] HTTP method parsing"
+    print("[success] HTTP method parsing")
+
+    # We only work with GET requests.
+    assert check_http_request_validity(
+        parsed) == HttpRequestState.NOT_IMPLEMENTED, "[failed] recognizing invalid HTTP verbs"
+    print("[success] recognizing invalid HTTP verbs")
+
+    req_str = "GET http://google.edu/ HTTP/1.0\r\n"
+    assert check_http_request_validity(
+        parsed) == HttpRequestState.GOOD, "[failed] recognizing valid HTTP verb"
+    print("[success] recognizing valid HTTP verb")
+
+    req_str = "GET / HTTP/1.0\r\nHost: google.edu\r\n\r\n"
+    assert check_http_request_validity(
+        parsed) == HttpRequestState.GOOD, "[failed] recognizing valid HTTP verb"
+    print("[success] recognizing valid HTTP verb")
+
+    # Host header isn't included
+    req_str = "GET / HTTP/1.0\r\n\r\n"
+    assert check_http_request_validity(
+        parsed) == HttpRequestState.BAD_REQUEST, "[failed] recognizing valid HTTP verb"
+    print("[success] recognizing valid HTTP verb")
 
 
 def main():
@@ -267,11 +414,18 @@ def main():
     print("*" * 50)
 
     # This argument is required.
-    # For a server, this means the IP that the server socket
-    # will use.
-    # The IP of the server.
     proxy_port_number = sys.argv[1]
-    setup_sockets(proxy_port_number)
+    ###################
+    # Run tests?
+    ###################
+    run_tests = False    # Change this value
+    if run_tests:
+        # Sorted by checklist order, feel free to comment/un-comment
+        # those functions.
+        simple_http_parsing_test_case()
+        simple_http_validation_test_case()
+
+    entry_point(proxy_port_number)
 
 
 if __name__ == "__main__":
