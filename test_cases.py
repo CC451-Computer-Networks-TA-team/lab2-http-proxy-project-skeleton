@@ -24,7 +24,7 @@ def simple_http_parsing_test_case():
     #######################################
     case = "Parse HTTP method."
 
-    req_str = "GET / HTTP/1.0\r\nHost: www.google.com\r\n\r\n"
+    req_str = "GET / HTTP/1.0\r\nHost: www.google.edu\r\n\r\n"
     parsed = parse_http_request(client_addr, req_str)
 
     correct_value = "GET"

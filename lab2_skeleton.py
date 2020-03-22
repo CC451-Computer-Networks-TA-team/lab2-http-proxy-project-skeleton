@@ -81,7 +81,8 @@ class HttpRequestInfo(object):
         print(f"Method:", self.method)
         print(f"Host:", self.requested_host)
         print(f"Port:", self.requested_port)
-        print("Headers:\n", "\n".join(self.headers))
+        stringified = [": ".join([k, v]) for (k, v) in self.headers]
+        print("Headers:\n", "\n".join(stringified))
 
 
 class HttpErrorResponse(object):
@@ -242,7 +243,6 @@ def sanitize_http_request(request_info: HttpRequestInfo) -> HttpRequestInfo:
 #######################################
 
 
-
 def get_arg(param_index, default=None):
     """
         Gets a command line argument by index (note: index starts from 1)
@@ -273,7 +273,7 @@ def check_file_name():
     """
     script_name = os.path.basename(__file__)
     import re
-    matches = re.findall(r"(\d{4}_)lab2\.py", script_name)
+    matches = re.findall(r"(\d{4}_){2}lab2\.py", script_name)
     if not matches:
         print(f"[WARN] File name is invalid [{script_name}]")
 
