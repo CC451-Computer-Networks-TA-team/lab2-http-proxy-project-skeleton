@@ -12,7 +12,7 @@ def lineno():
     return sys._getframe().f_back.f_lineno
 
 
-def simple_http_parsing_test_case():
+def simple_http_parsing_test_cases():
     """
     Example test cases, do NOT modify this.
 
@@ -24,11 +24,11 @@ def simple_http_parsing_test_case():
     #######################################
     case = "Parse HTTP method."
 
-    req_str = "GET / HTTP/1.0\r\nHost: www.google.edu\r\n\r\n"
+    req_str = "GET / HTTP/1.0\r\nHost: www.google.com\r\n\r\n"
     parsed = parse_http_request(client_addr, req_str)
 
-    correct_value = "GET"
     actual_value = parsed.method
+    correct_value = "GET"
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
@@ -37,10 +37,10 @@ def simple_http_parsing_test_case():
     #######################################
     case = "Parse headers."
 
-    # "Host: google.edu" header is added to the request.
+    # "Host: google.com" header is added to the request.
     # note that the ":" is removed.
-    correct_value = ("Host", "www.google.edu")
-    actual_value = parsed.headers[0]        # note: headers is a list of tuples
+    actual_value = parsed.headers[0]        # note: headers is a list of lists
+    correct_value = ["Host", "www.google.com"]
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
@@ -69,8 +69,8 @@ def simple_http_parsing_test_case():
     #######################################
     case = "Add requested host field."
 
-    correct_value = "www.google.com"
     actual_value = parsed.requested_host
+    correct_value = "www.google.com"
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
@@ -78,25 +78,11 @@ def simple_http_parsing_test_case():
 
     #######################################
     #######################################
-    case = "Parse wrong HTTP method."
 
-    # note, this is an invalid request, [parse_http_request] ONLY parses
-    # the HTTP request and does NOT validate it.
-    req_str = "GOAT http://www.google.edu/ HTTP/1.0\r\n\r\n"
-    parsed = parse_http_request(client_addr, req_str)
-
-    correct_value = "GOAT"
-    actual_value = parsed.method
-    assert correct_value == actual_value,\
-        f"[Line {lineno()}] [failed] {case}"\
-        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
-    print(f"[success] {case}")
-
-    #######################################
     case = "Convert full URL in request to relative path."
 
-    correct_value = "/"
     actual_value = parsed.requested_path
+    correct_value = "/"
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
@@ -105,8 +91,8 @@ def simple_http_parsing_test_case():
     #######################################
     case = "Add host header if a full HTTP path is used in request."
 
-    correct_value = ("Host", "www.google.edu")
     actual_value = parsed.headers[0]
+    correct_value = ["Host", "www.google.com"]
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
@@ -119,8 +105,8 @@ def simple_http_parsing_test_case():
     req_str = "GET / HTTP/1.0\r\nHost: www.google.com\r\nAccept: application/json\r\n\r\n"
     parsed = parse_http_request(client_addr, req_str)
 
-    correct_value = str(2)
     actual_value = str(len(parsed.headers))
+    correct_value = str(2)
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
@@ -131,7 +117,7 @@ def simple_http_parsing_test_case():
     case = "convert HttpRequestInfo to a the corresponding HTTP request"
     # A request to www.google.com/ , note adding the ":" to headers
     # "Host" header comes first
-    headers = [("Host", "www.google.com"), ("Accept", "application/json")]
+    headers = [["Host", "www.google.com"], ["Accept", "application/json"]]
     req = HttpRequestInfo(client_addr, "GET",
                           "www.google.com", 80, "/", headers)
 
@@ -146,42 +132,92 @@ def simple_http_parsing_test_case():
     print(f"[success] {case}")
 
 
-def simple_http_validation_test_case():
-    client_addr = ("127.0.0.1", 9877)
-    # Invalid input
-    case = "Invalid HTTP verb returns INVALID_INPUT"
-    req_str = "GOAT http://google.edu/ HTTP/1.0\r\nAccept: application/json\r\n\r\n"
-    parsed = parse_http_request(client_addr, req_str)
+def simple_http_validation_test_cases():
+    """
+    Example test cases, do NOT modify this.
 
-    correct_value = HttpRequestState.INVALID_INPUT
-    actual_value = check_http_request_validity(parsed)
+    If your code is correct, calling this function will have no effect.
+    """
+    case = "Parse a valid HTTP request."
+    req_str = "GET / HTTP/1.0\r\nHost: www.google.com\r\n\r\n"
+
+    actual_value = check_http_request_validity(req_str)
+    correct_value = HttpRequestState.GOOD
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
-        " Expected ( %s ) got ( %s )" % (correct_value.name, actual_value.name)
+        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
     print(f"[success] {case}")
 
     #######################################
     #######################################
-    case = "PUT request returns NOT_SUPPORTED"
-    req_str = "PUT http://google.edu/ HTTP/1.0\r\nAccept: application/json\r\n\r\n"
-    parsed = parse_http_request(client_addr, req_str)
 
-    # We only work with GET requests.
-    correct_value = HttpRequestState.NOT_SUPPORTED
-    actual_value = check_http_request_validity(parsed)
+    case = "Parse an invalid HTTP request (invalid method)"
+    req_str = "GOAT / HTTP/1.0\r\nHost: www.google.com\r\n\r\n"
+
+    actual_value = check_http_request_validity(req_str)
+    correct_value = HttpRequestState.INVALID_INPUT
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
-        " Expected ( %s ) got ( %s )" % (correct_value.name, actual_value.name)
+        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
+    print(f"[success] {case}")
+
+    #######################################
+    #######################################
+
+    case = "Parse an invalid HTTP request (not-supported method)"
+    req_str = "HEAD / HTTP/1.0\r\nHost: www.google.com\r\n\r\n"
+
+    actual_value = check_http_request_validity(req_str)
+    correct_value = HttpRequestState.NOT_SUPPORTED
+    assert correct_value == actual_value,\
+        f"[Line {lineno()}] [failed] {case}"\
+        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
+    print(f"[success] {case}")
+
+    #######################################
+    #######################################
+
+    case = "Parse an invalid HTTP request (relative path with no host header)"
+    req_str = "HEAD / HTTP/1.0\r\n\r\n"
+
+    actual_value = check_http_request_validity(req_str)
+    correct_value = HttpRequestState.INVALID_INPUT
+    assert correct_value == actual_value,\
+        f"[Line {lineno()}] [failed] {case}"\
+        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
+    print(f"[success] {case}")
+
+    #######################################
+    #######################################
+    case = "Parse an invalid HTTP request (bad header [no colon, no value])"
+    req_str = "HEAD www.google.com HTTP/1.0\r\nAccept \r\n"
+
+    actual_value = check_http_request_validity(req_str)
+    correct_value = HttpRequestState.INVALID_INPUT
+    assert correct_value == actual_value,\
+        f"[Line {lineno()}] [failed] {case}"\
+        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
+    print(f"[success] {case}")
+
+    #######################################
+    #######################################
+    case = "Parse an invalid HTTP request (no HTTP version)"
+    req_str = "HEAD / \r\nHost: www.google.com\r\n\r\n"
+
+    actual_value = check_http_request_validity(req_str)
+    correct_value = HttpRequestState.INVALID_INPUT
+    assert correct_value == actual_value,\
+        f"[Line {lineno()}] [failed] {case}"\
+        " Expected ( %s ) got ( %s )" % (correct_value, actual_value)
     print(f"[success] {case}")
 
     #######################################
     #######################################
     case = "GET request with full URL in path returns GOOD"
-    req_str = "GET http://google.edu/ HTTP/1.0\r\n"
-    parsed = parse_http_request(client_addr, req_str)
+    req_str = "GET http://google.com/ HTTP/1.0\r\n"
 
+    actual_value = check_http_request_validity(req_str)
     correct_value = HttpRequestState.GOOD
-    actual_value = check_http_request_validity(parsed)
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value.name, actual_value.name)
@@ -189,12 +225,12 @@ def simple_http_validation_test_case():
 
     #######################################
     #######################################
+
     case = "GET request with relative path and host header returns GOOD"
-    req_str = "GET / HTTP/1.0\r\nHost: google.edu\r\n\r\n"
-    parsed = parse_http_request(client_addr, req_str)
+    req_str = "GET / HTTP/1.0\r\nHost: google.com\r\n\r\n"
 
+    actual_value = check_http_request_validity(req_str)
     correct_value = HttpRequestState.GOOD
-    actual_value = check_http_request_validity(parsed)
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value.name, actual_value.name)
@@ -202,12 +238,12 @@ def simple_http_validation_test_case():
 
     #######################################
     #######################################
+
     case = "Relative path without host header returns INVALID_INPUT"
     req_str = "GET / HTTP/1.0\r\n\r\n"
-    parsed = parse_http_request(client_addr, req_str)
 
+    actual_value = check_http_request_validity(req_str)
     correct_value = HttpRequestState.INVALID_INPUT
-    actual_value = check_http_request_validity(parsed)
     assert correct_value == actual_value,\
         f"[Line {lineno()}] [failed] {case}"\
         " Expected ( %s ) got ( %s )" % (correct_value.name, actual_value.name)
@@ -221,8 +257,8 @@ def main():
     # Sorted by checklist order, feel free to comment/un-comment
     # any of those functions.
     try:
-        simple_http_parsing_test_case()
-        simple_http_validation_test_case()
+        simple_http_validation_test_cases()
+        simple_http_parsing_test_cases()
     except AssertionError as e:
         print("Test case failed:\n", str(e))
         exit(-1)

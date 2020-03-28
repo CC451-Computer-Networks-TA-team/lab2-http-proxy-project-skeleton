@@ -40,11 +40,11 @@ class HttpRequestInfo(object):
         self.requested_host = requested_host
         self.requested_port = requested_port
         self.requested_path = requested_path
-        # Headers will be represented as a list of tuples
-        # for example ("Host", "www.google.com")
+        # Headers will be represented as a list of lists
+        # for example ["Host", "www.google.com"]
         # if you get a header as:
         # "Host: www.google.com:80"
-        # convert it to ("Host", "www.google.com") note that the
+        # convert it to ["Host", "www.google.com"] note that the
         # port is removed (because it goes into the request_port variable)
         self.headers = headers
 
@@ -58,6 +58,8 @@ class HttpRequestInfo(object):
         [header]\r\n
         [headers..]\r\n
         \r\n
+
+        (just join the already existing fields by \r\n)
 
         You still need to convert this string
         to byte array before sending it to the socket,
@@ -171,10 +173,10 @@ def http_request_pipeline(source_addr, http_raw_data):
     """
     HTTP request processing pipeline.
 
-    - Parses the given HTTP request
-    - Validates it
-    - Returns a sanitized HttpRequestInfo or HttpErrorResponse
-        based on request validity.
+    - Validates the given HTTP request and returns
+      an error if an invalid request was given.
+    - Parses it
+    - Returns a sanitized HttpRequestInfo
 
     returns:
      HttpRequestInfo if the request was parsed correctly.
@@ -184,8 +186,10 @@ def http_request_pipeline(source_addr, http_raw_data):
     free to change its content
     """
     # Parse HTTP request
-    parsed = parse_http_request(source_addr, http_raw_data)
-
+    validity = check_http_request_validity(http_raw_data)
+    # Return error if needed, then:
+    # parse_http_request()
+    # sanitize_http_request()
     # Validate, sanitize, return Http object.
     print("*" * 50)
     print("[http_request_pipeline] Implement me!")
@@ -193,12 +197,10 @@ def http_request_pipeline(source_addr, http_raw_data):
     return None
 
 
-def parse_http_request(source_addr, http_raw_data) -> HttpRequestInfo:
+def parse_http_request(source_addr, http_raw_data):
     """
-    This function parses an HTTP request into an HttpRequestInfo
+    This function parses a "valid" HTTP request into an HttpRequestInfo
     object.
-
-    it does NOT validate the HTTP request.
     """
     print("*" * 50)
     print("[parse_http_request] Implement me!")
@@ -208,9 +210,9 @@ def parse_http_request(source_addr, http_raw_data) -> HttpRequestInfo:
     return ret
 
 
-def check_http_request_validity(http_request_info: HttpRequestInfo) -> HttpRequestState:
+def check_http_request_validity(http_raw_data) -> HttpRequestState:
     """
-    Checks if an HTTP response is valid
+    Checks if an HTTP request is valid
 
     returns:
     One of values in HttpRequestState
@@ -222,21 +224,20 @@ def check_http_request_validity(http_request_info: HttpRequestInfo) -> HttpReque
     return HttpRequestState.PLACEHOLDER
 
 
-def sanitize_http_request(request_info: HttpRequestInfo) -> HttpRequestInfo:
+def sanitize_http_request(request_info: HttpRequestInfo):
     """
-    Puts an HTTP request on the sanitized (standard form)
+    Puts an HTTP request on the sanitized (standard) form
+    by modifying the input request_info object.
+
+    for example, expand a full URL to relative path + Host header.
 
     returns:
-    A modified object of the HttpRequestInfo with
-    sanitized fields
-
-    for example, expand a URL to relative path + Host header.
+    nothing, but modifies the input object
     """
     print("*" * 50)
     print("[sanitize_http_request] Implement me!")
     print("*" * 50)
-    ret = HttpRequestInfo(None, None, None, None, None, None)
-    return ret
+
 
 #######################################
 # Leave the code below as is.
@@ -273,9 +274,11 @@ def check_file_name():
     """
     script_name = os.path.basename(__file__)
     import re
-    matches = re.findall(r"(\d{4}_){2}lab2\.py", script_name)
+    matches = re.findall(r"(\d{4}_){,2}lab2\.py", script_name)
     if not matches:
         print(f"[WARN] File name is invalid [{script_name}]")
+    else:
+        print(f"[LOG] File name is correct.")
 
 
 def main():
